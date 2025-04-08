@@ -16,11 +16,10 @@ export default function Home() {
   const [txSignature, setTxSignature] = useState<string | null>(null)
 
   const handleSubmit = async (formData: LockFormData) => {
-    if (!publicKey || !signTransaction || !signAllTransactions || !formData.selectedToken) return
+    if (!publicKey || !signTransaction || !signAllTransactions) return
 
     setIsProcessing(true)
     try {
-      // Create an AnchorProvider
       const provider = new AnchorProvider(
         connection,
         {
@@ -28,18 +27,12 @@ export default function Home() {
           signTransaction,
           signAllTransactions,
         },
-        { commitment: "confirmed" },
+        { commitment: "confirmed" }
       )
 
       const tokenLockProgram = new TokenLockProgram(provider)
-
-      // Initialize the vault if needed
       await tokenLockProgram.initialize(publicKey)
-
-      // Deposit tokens
-      const recipientPublicKey = new PublicKey(formData.recipientAddress)
       const txId = await tokenLockProgram.deposit(publicKey, formData.amount)
-
       setTxSignature(txId)
       console.log("Transaction successful:", txId)
     } catch (error) {
@@ -62,22 +55,25 @@ export default function Home() {
             <>
               {txSignature ? (
                 <div className="bg-card p-6 rounded-lg text-center">
-                  <h2 className="text-xl font-semibold mb-4">Token Lock Created Successfully!</h2>
-                  <p className="mb-4">Transaction Signature:</p>
+                  <h2 className="text-xl font-semibold mb-4 text-foreground">Token Lock Created Successfully!</h2>
+                  <p className="mb-2 text-sm text-muted-foreground">Transaction Signature:</p>
                   <a
                     href={`https://explorer.solana.com/tx/${txSignature}?cluster=devnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-primary underline break-all"
+                    className="block text-blue-400 hover:underline break-words text-sm"
                   >
                     {txSignature}
                   </a>
-                  <button
-                    onClick={() => setTxSignature(null)}
-                    className="mt-6 px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
-                  >
-                    Create Another Lock
-                  </button>
+
+                  <div className="flex justify-center mt-6">
+                    <button
+                      onClick={() => setTxSignature(null)}
+                      className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
+                    >
+                      Create Another Lock
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <TokenLockForm onSubmit={handleSubmit} />
@@ -85,7 +81,7 @@ export default function Home() {
             </>
           ) : (
             <div className="bg-card p-6 rounded-lg text-center">
-            
+              <p className="text-muted-foreground">Please connect your wallet to get started.</p>
             </div>
           )}
         </div>
@@ -93,4 +89,3 @@ export default function Home() {
     </main>
   )
 }
-
