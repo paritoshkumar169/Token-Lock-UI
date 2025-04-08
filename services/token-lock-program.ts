@@ -68,4 +68,22 @@ export class TokenLockProgram {
     console.log("Deposit successful:", txSig);
     return txSig;
   }
+
+  async getVaultInfo(authority: PublicKey) {
+    const [vaultPDA] = await this.getVaultAddress(authority);
+
+    try {
+      const vaultAccount = await this.program.account.vault.fetch(vaultPDA) as any;
+      console.log("vaultAccount:", vaultAccount);
+
+      return {
+        vaultAddress: vaultPDA,
+        balanceLamports: vaultAccount.balance ? vaultAccount.balance.toNumber() : 0,
+        authority: vaultAccount.authority,
+      };
+    } catch (err) {
+      console.error("Vault not found:", err);
+      return null;
+    }
+  }
 }

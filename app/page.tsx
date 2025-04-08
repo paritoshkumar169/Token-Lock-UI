@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useWallet, useConnection } from "@solana/wallet-adapter-react"
 import { AnchorProvider } from "@project-serum/anchor"
 import { PublicKey } from "@solana/web3.js"
@@ -8,6 +8,7 @@ import { WalletConnectButton } from "@/components/wallet-connect-button"
 import { TokenLockForm } from "@/components/token-lock-form"
 import type { LockFormData } from "@/types"
 import { TokenLockProgram } from "@/services/token-lock-program"
+import { VaultCard } from "@/components/vault-card"
 
 export default function Home() {
   const { publicKey, signTransaction, signAllTransactions } = useWallet()
@@ -53,6 +54,12 @@ export default function Home() {
 
           {publicKey ? (
             <>
+              {!txSignature && (
+                <div className="mb-8">
+                  <VaultInfoSection authority={publicKey} />
+                </div>
+              )}
+
               {txSignature ? (
                 <div className="bg-card p-6 rounded-lg text-center">
                   <h2 className="text-xl font-semibold mb-4 text-foreground">Token Lock Created Successfully!</h2>
@@ -87,5 +94,43 @@ export default function Home() {
         </div>
       </div>
     </main>
+  )
+}
+
+const VaultInfoSection = ({ authority }: { authority: PublicKey }) => {
+  const { connection } = useConnection()
+  const { publicKey, signTransaction, signAllTransactions } = useWallet()
+  const [vaultData, setVaultData] = useState<{
+    vaultAddress: PublicKey
+    balanceLamports: number
+    authority: PublicKey
+  } | null>(null)
+
+  useEffect(() => {
+    if (!publicKey || !signTransaction || !signAllTransactions) return
+
+    const loadVault = async () => {
+      const provider = new AnchorProvider(
+        connection,
+        { publicKey, signTransaction, signAllTransactions },
+        { commitment: "confirmed" }
+      )
+
+      const program = new TokenLockProgram(provider)
+      const data = await program.getVaultInfo(authority)
+      if (data) setVaultData(data)
+    }
+
+    loadVault()
+  }, [authority, publicKey])
+
+  return vaultData ? (
+    <VaultCard
+      vaultAddress={vaultData.vaultAddress}
+      balanceLamports={vaultData.balanceLamports}
+      authority={vaultData.authority}
+    />
+  ) : (
+    <div className="text-muted-foreground text-sm">No vault created yet.</div>
   )
 }
