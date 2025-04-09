@@ -20,11 +20,39 @@ export const TokenLockForm = ({ onSubmit }: TokenLockFormProps) => {
     recipientAddress: "",
     cancelPermission: PermissionType.NONE,
     changeRecipientPermission: PermissionType.NONE,
+    releaseTime: "",
+    lockDuration: 0,
   })
+
+  // Helper to validate a Solana address format
+  const isValidSolanaAddress = (address: string) => {
+    try {
+      new PublicKey(address)
+      return true
+    } catch {
+      return false
+    }
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
-    setFormData({ ...formData, [name]: value })
+    if (name === "releaseTime") {
+      // Calculate lock duration (in seconds) from now until the selected release time
+      let durationSec = 0
+      if (value) {
+        const selectedTime = new Date(value).getTime()
+        const nowTime = Date.now()
+        durationSec = Math.floor((selectedTime - nowTime) / 1000)
+        if (durationSec < 0) durationSec = 0  // no negative durations
+      }
+      setFormData({
+        ...formData,
+        releaseTime: value,
+        lockDuration: durationSec,
+      })
+    } else {
+      setFormData({ ...formData, [name]: value })
+    }
   }
 
   const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,22 +63,16 @@ export const TokenLockForm = ({ onSubmit }: TokenLockFormProps) => {
   const handleCancelPermissionChange = (value: PermissionType) => {
     setFormData({ ...formData, cancelPermission: value })
   }
-
   const handleChangeRecipientPermissionChange = (value: PermissionType) => {
     setFormData({ ...formData, changeRecipientPermission: value })
   }
 
-  const isValidSolanaAddress = (address: string) => {
-    try {
-      new PublicKey(address)
-      return true
-    } catch (error) {
-      return false
-    }
-  }
-
+  // Form is valid if title is set, amount > 0, recipient address is valid, and release time is chosen
   const isFormValid =
-    formData.title.trim() !== "" && formData.amount > 0 && isValidSolanaAddress(formData.recipientAddress)
+    formData.title.trim() !== "" &&
+    formData.amount > 0 &&
+    isValidSolanaAddress(formData.recipientAddress) &&
+    formData.lockDuration > 0
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,11 +80,21 @@ export const TokenLockForm = ({ onSubmit }: TokenLockFormProps) => {
     onSubmit(formData)
   }
 
+  // Set minimum allowed datetime to now (prevent selecting past time)
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, "0")
+  const day = String(now.getDate()).padStart(2, "0")
+  const hour = String(now.getHours()).padStart(2, "0")
+  const minute = String(now.getMinutes()).padStart(2, "0")
+  const minDatetime = `${year}-${month}-${day}T${hour}:${minute}`
+
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
       <div className="space-y-6">
         <h2 className="text-xl font-semibold text-foreground">Lock Native SOL</h2>
         <div className="bg-card p-6 rounded-lg space-y-6">
+          {/* Lock title input */}
           <div className="space-y-2">
             <label htmlFor="title" className="block text-sm font-medium text-foreground">
               Lock Title
@@ -71,13 +103,14 @@ export const TokenLockForm = ({ onSubmit }: TokenLockFormProps) => {
               type="text"
               id="title"
               name="title"
-              placeholder="eg: Team Tokens"
+              placeholder="e.g. Team Tokens"
               value={formData.title}
               onChange={handleInputChange}
               className="w-full p-3 bg-input text-foreground rounded-lg"
             />
           </div>
 
+          {/* Amount to lock input */}
           <div className="space-y-2">
             <label htmlFor="amount" className="block text-sm font-medium text-foreground">
               Amount (in SOL)
@@ -92,6 +125,7 @@ export const TokenLockForm = ({ onSubmit }: TokenLockFormProps) => {
             />
           </div>
 
+          {/* Recipient address input */}
           <div className="space-y-2">
             <label htmlFor="recipientAddress" className="block text-sm font-medium text-foreground">
               Recipient Wallet Address
@@ -106,10 +140,34 @@ export const TokenLockForm = ({ onSubmit }: TokenLockFormProps) => {
                 onChange={handleInputChange}
                 className="w-full p-3 bg-input text-foreground rounded-lg"
               />
-              <p className="text-xs text-gray-400">Recipient must manually claim tokens</p>
+              <p className="text-xs text-gray-400">
+                Recipient must manually claim tokens after release.
+              </p>
             </div>
           </div>
 
+          {/* Release time picker input */}
+          <div className="space-y-2">
+            <label htmlFor="releaseTime" className="block text-sm font-medium text-foreground">
+              Release Time (Unlock Date &amp; Time)
+            </label>
+            <div className="space-y-1">
+              <input
+                type="datetime-local"
+                id="releaseTime"
+                name="releaseTime"
+                value={formData.releaseTime}
+                min={minDatetime}
+                onChange={handleInputChange}
+                className="w-full p-3 bg-input text-foreground rounded-lg"
+              />
+              <p className="text-xs text-gray-400">
+                Select the date and time when locked tokens become available.
+              </p>
+            </div>
+          </div>
+
+          {/* Permission selectors */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <PermissionSelector
               label="Who can cancel the contract?"
@@ -127,10 +185,10 @@ export const TokenLockForm = ({ onSubmit }: TokenLockFormProps) => {
         <div className="flex justify-end">
           <button
             type="submit"
-            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium disabled:opacity-50"
             disabled={!isFormValid}
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium disabled:opacity-50"
           >
-            Lock SOL
+            {publicKey ? "Lock Tokens" : "Connect Wallet"}
           </button>
         </div>
       </div>

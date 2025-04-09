@@ -13,8 +13,17 @@ import { VaultCard } from "@/components/vault-card"
 export default function Home() {
   const { publicKey, signTransaction, signAllTransactions } = useWallet()
   const { connection } = useConnection()
+
   const [isProcessing, setIsProcessing] = useState(false)
   const [txSignature, setTxSignature] = useState<string | null>(null)
+  const [vaultData, setVaultData] = useState<{
+    vaultAddress: PublicKey
+    balanceLamports: number
+    authority: PublicKey
+    recipient: PublicKey
+    cancelPermission: number
+    changeRecipientPermission: number
+  } | null>(null)
 
   const handleSubmit = async (formData: LockFormData) => {
     if (!publicKey || !signTransaction || !signAllTransactions) return
@@ -23,19 +32,22 @@ export default function Home() {
     try {
       const provider = new AnchorProvider(
         connection,
-        {
-          publicKey,
-          signTransaction,
-          signAllTransactions,
-        },
+        { publicKey, signTransaction, signAllTransactions },
         { commitment: "confirmed" }
       )
-
       const tokenLockProgram = new TokenLockProgram(provider)
-      await tokenLockProgram.initialize(publicKey)
+
+      // Initialize vault (only creates if not already created)
+      await tokenLockProgram.initialize(publicKey, formData)
+      // Deposit the specified amount into the vault
       const txId = await tokenLockProgram.deposit(publicKey, formData.amount)
-      setTxSignature(txId)
       console.log("Transaction successful:", txId)
+
+      // After successful transaction confirmation, fetch the vault info
+      const data = await tokenLockProgram.getVaultInfo(publicKey)
+      setVaultData(data)  // will be non-null if vault is initialized
+
+      setTxSignature(txId)
     } catch (error) {
       console.error("Error creating token lock:", error)
     } finally {
@@ -54,28 +66,42 @@ export default function Home() {
 
           {publicKey ? (
             <>
-              {!txSignature && (
-                <div className="mb-8">
-                  <VaultInfoSection authority={publicKey} />
-                </div>
-              )}
-
               {txSignature ? (
+                // **Success state:** Vault created successfully
                 <div className="bg-card p-6 rounded-lg text-center">
-                  <h2 className="text-xl font-semibold mb-4 text-foreground">Token Lock Created Successfully!</h2>
+                  <h2 className="text-xl font-semibold mb-4 text-foreground">
+                    🎉 Token Lock Created Successfully!
+                  </h2>
                   <p className="mb-2 text-sm text-muted-foreground">Transaction Signature:</p>
                   <a
                     href={`https://explorer.solana.com/tx/${txSignature}?cluster=devnet`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="block text-blue-400 hover:underline break-words text-sm"
+                    className="block text-blue-400 hover:underline break-words text-sm mb-4"
                   >
                     {txSignature}
                   </a>
-
+                  {/* Display vault details once available */}
+                  {vaultData ? (
+                    <VaultCard
+                      vaultAddress={vaultData.vaultAddress}
+                      balanceLamports={vaultData.balanceLamports}
+                      authority={vaultData.authority}
+                      recipient={vaultData.recipient}
+                      cancelPermission={vaultData.cancelPermission}
+                      changeRecipientPermission={vaultData.changeRecipientPermission}
+                    />
+                  ) : (
+                    <p className="text-muted-foreground text-sm mb-4">
+                      Loading vault details&hellip;
+                    </p>
+                  )}
                   <div className="flex justify-center mt-6">
                     <button
-                      onClick={() => setTxSignature(null)}
+                      onClick={() => {
+                        // Reset state to allow creating another lock (vault persists)
+                        setTxSignature(null)
+                      }}
                       className="px-6 py-2 bg-primary text-primary-foreground rounded-lg font-medium"
                     >
                       Create Another Lock
@@ -83,10 +109,30 @@ export default function Home() {
                   </div>
                 </div>
               ) : (
-                <TokenLockForm onSubmit={handleSubmit} />
+                // **Form state:** No lock created yet (or creating another lock)
+                <>
+                  {vaultData ? (
+                    <div className="mb-8">
+                      <VaultCard
+                        vaultAddress={vaultData.vaultAddress}
+                        balanceLamports={vaultData.balanceLamports}
+                        authority={vaultData.authority}
+                        recipient={vaultData.recipient}
+                        cancelPermission={vaultData.cancelPermission}
+                        changeRecipientPermission={vaultData.changeRecipientPermission}
+                      />
+                    </div>
+                  ) : (
+                    <div className="mb-8 text-muted-foreground text-sm">
+                      No vault created yet.
+                    </div>
+                  )}
+                  <TokenLockForm onSubmit={handleSubmit} />
+                </>
               )}
             </>
           ) : (
+            // Prompt to connect wallet if not connected
             <div className="bg-card p-6 rounded-lg text-center">
               <p className="text-muted-foreground">Please connect your wallet to get started.</p>
             </div>
@@ -94,43 +140,5 @@ export default function Home() {
         </div>
       </div>
     </main>
-  )
-}
-
-const VaultInfoSection = ({ authority }: { authority: PublicKey }) => {
-  const { connection } = useConnection()
-  const { publicKey, signTransaction, signAllTransactions } = useWallet()
-  const [vaultData, setVaultData] = useState<{
-    vaultAddress: PublicKey
-    balanceLamports: number
-    authority: PublicKey
-  } | null>(null)
-
-  useEffect(() => {
-    if (!publicKey || !signTransaction || !signAllTransactions) return
-
-    const loadVault = async () => {
-      const provider = new AnchorProvider(
-        connection,
-        { publicKey, signTransaction, signAllTransactions },
-        { commitment: "confirmed" }
-      )
-
-      const program = new TokenLockProgram(provider)
-      const data = await program.getVaultInfo(authority)
-      if (data) setVaultData(data)
-    }
-
-    loadVault()
-  }, [authority, publicKey])
-
-  return vaultData ? (
-    <VaultCard
-      vaultAddress={vaultData.vaultAddress}
-      balanceLamports={vaultData.balanceLamports}
-      authority={vaultData.authority}
-    />
-  ) : (
-    <div className="text-muted-foreground text-sm">No vault created yet.</div>
   )
 }
