@@ -13,11 +13,12 @@ interface PermissionSelectorProps {
 export const PermissionSelector = ({ label, value, onChange }: PermissionSelectorProps) => {
   const [isOpen, setIsOpen] = useState(false)
 
+  // Use enum order: NONE, RECIPIENT, CREATOR, BOTH
   const options = [
     { value: PermissionType.NONE, label: "None" },
-    { value: PermissionType.CREATOR, label: "Creator" },
     { value: PermissionType.RECIPIENT, label: "Recipient" },
-    { value: PermissionType.BOTH, label: "Both Creator or Recipient" },
+    { value: PermissionType.CREATOR, label: "Creator" },
+    { value: PermissionType.BOTH, label: "Both" },
   ]
 
   const handleSelect = (option: (typeof options)[0]) => {
@@ -55,4 +56,3 @@ export const PermissionSelector = ({ label, value, onChange }: PermissionSelecto
     </div>
   )
 }
-

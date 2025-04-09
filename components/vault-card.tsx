@@ -21,14 +21,16 @@ export const VaultCard = ({
 
   const formatPermission = (value: number) => {
     switch (value) {
+      case 0:
+        return "None"
       case 1:
-        return "Creator"
-      case 2:
         return "Recipient"
+      case 2:
+        return "Creator"
       case 3:
         return "Both"
       default:
-        return "None"
+        return "Unknown"
     }
   }
 
@@ -60,7 +62,8 @@ export const VaultCard = ({
 
       <div className="text-sm text-muted-foreground mt-2">
         <p>
-          <span className="font-medium text-foreground">Who can cancel:</span> {formatPermission(cancelPermission)}
+          <span className="font-medium text-foreground">Who can cancel:</span>{" "}
+          {formatPermission(cancelPermission)}
         </p>
         <p>
           <span className="font-medium text-foreground">Who can change recipient:</span>{" "}
