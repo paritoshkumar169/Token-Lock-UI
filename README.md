@@ -1,10 +1,6 @@
 #  Token Lock UI (Solana Devnet)
 
-Vercel Link  [https://v0-solana-ubsvcq.vercel.app](https://v0-solana-ubsvcq.vercel.app)  
- Demo Video:
-
-<video src="public/demo.mp4" controls width="100%"></video>  
-🔗 [Click here to view if the video doesn’t load](public/demo.mp4)
+Vercel Link  [https://v0-solana-ubsvcq.vercel.app](https://v0-solana-ubsvcq.vercel.app) 
 
 >  Make sure your wallet is set to **Devnet** and airdrop some SOL using:  
 > `solana airdrop 2 <your_wallet_address>`
