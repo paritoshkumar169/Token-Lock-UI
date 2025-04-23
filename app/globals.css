@@ -88,7 +88,7 @@ body {
 
 @layer base {
   * {
-    @apply border-border;
+    @apply border-[--border];
   }
   body {
     background-color: var(--background);

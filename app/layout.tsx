@@ -8,8 +8,6 @@ const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "Solana Token Lock",
-  description: "Lock your Solana tokens with custom parameters",
-  generator: "v0.dev",
 }
 
 export default function RootLayout({
