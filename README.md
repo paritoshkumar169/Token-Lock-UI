@@ -7,7 +7,7 @@ This project is inspired by [lock.jup.ag](https://lock.jup.ag) and designed for 
 
 ---
 
-## 🚀 Features
+## Features
 
 - Lock any SPL token for a chosen unlock duration
 - Claim tokens after the unlock time has passed
@@ -34,4 +34,4 @@ npm install
 ```bash
 npm run dev
 ```
-##Then open http://localhost:3000 to view it locally.
+Then open http://localhost:3000 to view it locally.
